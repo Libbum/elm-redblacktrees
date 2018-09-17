@@ -1,7 +1,7 @@
 module RedBlackTrees exposing
     ( RedBlackTree, Colour(..)
     , empty, singleton, fromList, insert
-    , isMember, size, blackHeight, height, flatten
+    , isMember, size, blackHeight, height, flatten, fold
     , isValid
     )
 
@@ -23,7 +23,7 @@ time complexity drops to O(log N) [from O(N) in the BST case].
 
 # Utilities
 
-@docs isMember, size, blackHeight, height, flatten
+@docs isMember, size, blackHeight, height, flatten, fold
 
 
 # Validation
@@ -222,6 +222,16 @@ flatten tree =
 
         Node value colour left right ->
             List.concat [ flatten left, [ value ], flatten right ]
+
+
+fold : (comparable -> comparable -> comparable) -> comparable -> RedBlackTree comparable -> comparable
+fold f acc tree =
+    case tree of
+        Empty ->
+            acc
+
+        Node x colour left right ->
+            fold f (f x (fold f acc right)) left
 
 
 
