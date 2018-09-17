@@ -1,7 +1,7 @@
 module RedBlackTrees exposing
     ( RedBlackTree, Colour(..)
-    , empty, fromList, insert
-    , isMember, size, blackHeight, height
+    , empty, singleton, fromList, insert
+    , isMember, size, blackHeight, height, flatten
     , isValid
     )
 
@@ -18,12 +18,12 @@ time complexity drops to O(log N) [from O(N) in the BST case].
 
 # Building
 
-@docs empty, fromList, insert
+@docs empty, singleton, fromList, insert
 
 
 # Utilities
 
-@docs isMember, size, blackHeight, height
+@docs isMember, size, blackHeight, height, flatten
 
 
 # Validation
@@ -55,13 +55,30 @@ type Colour
 
 
 {-| An empty tree for ease of use when constructing trees.
+
+    empty == Empty
+
 -}
 empty : RedBlackTree comparable
 empty =
     Empty
 
 
+{-| A tree with a single value inserted into it. Since this
+is a single node tree, it's colour is black by definition.
+
+    singleton 5 == Node 5 Black Empty Empty
+
+-}
+singleton : comparable -> RedBlackTree comparable
+singleton value =
+    Node value Black Empty Empty
+
+
 {-| Generate a Red Black representation of a list.
+
+    fromList [ 2, 7, 8, 3, 9, 1, 5, 10 ] == Node 7 Black (Node 3 Red (Node 2 Black (Node 1 Red Empty Empty) Empty) (Node 5 Black Empty Empty)) (Node 9 Red (Node 8 Black Empty Empty) (Node 10 Black Empty Empty))
+
 -}
 fromList : List comparable -> RedBlackTree comparable
 fromList =
@@ -71,6 +88,9 @@ fromList =
 {-| Adds a new value to the tree. Since this may cause on of the four
 red black constraints to be broken, there may be a need to recolour nodes
 or rebalance the tree.
+
+    singleton 8 |> insert 1 == Node 8 Black (Node 1 Red Empty Empty) Empty
+
 -}
 insert : comparable -> RedBlackTree comparable -> RedBlackTree comparable
 insert x tree =
@@ -91,6 +111,9 @@ insert x tree =
 
 
 {-| Check if a value currently exists within in a tree.
+
+    fromList [ 1, 2, 3 ] |> isMember 72 == False
+
 -}
 isMember : comparable -> RedBlackTree comparable -> Bool
 isMember x tree =
@@ -110,6 +133,9 @@ isMember x tree =
 
 
 {-| Count the number of elements in the tree.
+
+    fromList [ 3, 8, 16 ] |> size == 3
+
 -}
 size : RedBlackTree comparable -> Int
 size tree =
@@ -124,6 +150,12 @@ size tree =
 {-| Every path from the root to the leaves of a red black tree must contain
 the same number of black nodes. The `blackHeight` is the value of this path length.
 Notably, this is also the shortest path from root to leaf.
+
+    fromList [ 2, 7, 4, 9, 1, 3, 18, 10 ] |> blackHeight == Just 2
+
+Calling `blackHeight` on a valid red black tree will return a count, but if
+the tree is not correctly balanced, this function will return `Nothing`.
+
 -}
 blackHeight : RedBlackTree comparable -> Maybe Int
 blackHeight tree =
@@ -153,8 +185,12 @@ blackHeight tree =
                     Nothing
 
 
-{-| Calculate the height of the tree. The longest path from the root to a leaf
-is at most twice the length of the shortest path.
+{-| Calculate the height of the tree.
+
+    fromList [ 8, 24, 17, 32, 9, 1, 12, 7 ] |> height == 4
+
+The longest path from the root to a leaf is at most twice the length of
+the shortest path.
 
     height tree <= 2 * (Maybe.withDefault 0 <| blackHeight tree) == True
 
@@ -169,6 +205,25 @@ height tree =
             1 + max (height left) (height right)
 
 
+{-| Generate a list of values contained in the tree. Since
+Red Black trees are an extention of Binary Search Trees, the
+resultant list will be sorted. Colour is ignored in this operation.
+
+    tree = fromList [ 8, 1, 2, 6, 29, 42, 7, 22, 18, 36 ] == Node 7 Black (Node 2 Black (Node 1 Black Empty Empty) (Node 6 Black Empty Empty)) (Node 29 Black (Node 18 Red (Node 8 Black Empty Empty) (Node 22 Black Empty Empty)) (Node 42 Black (Node 36 Red Empty Empty) Empty))
+
+    flatten tree == [ 1, 2, 6, 7, 8, 18, 22, 29, 36, 42 ]
+
+-}
+flatten : RedBlackTree comparable -> List comparable
+flatten tree =
+    case tree of
+        Empty ->
+            []
+
+        Node value colour left right ->
+            List.concat [ flatten left, [ value ], flatten right ]
+
+
 
 --- Validation
 
@@ -179,6 +234,10 @@ height tree =
 2.  The root node is coloured `Black`
 3.  No red node has a child node that is also red
 4.  Every path from the root to a leaf contains the same number of black nodes
+
+```
+fromList [ 1, 2, 3, 4 ] |> isValid == True
+```
 
 -}
 isValid : RedBlackTree comparable -> Bool
