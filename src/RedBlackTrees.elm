@@ -1,6 +1,8 @@
 module RedBlackTrees exposing
     ( RedBlackTree, Colour(..)
     , empty, singleton, fromList, insert
+    , preOrder, inOrder, postOrder
+    , levelOrder
     , isMember, size, blackHeight, height, flatten
     , isValid
     )
@@ -21,6 +23,19 @@ time complexity drops to O(log N) [from O(N) in the BST case].
 @docs empty, singleton, fromList, insert
 
 
+# Searching
+
+
+## Depth First
+
+@docs preOrder, inOrder, postOrder
+
+
+## Breadth First
+
+@docs levelOrder
+
+
 # Utilities
 
 @docs isMember, size, blackHeight, height, flatten
@@ -31,6 +46,10 @@ time complexity drops to O(log N) [from O(N) in the BST case].
 @docs isValid
 
 -}
+
+import Fifo exposing (Fifo)
+
+
 
 --- Types
 
@@ -104,6 +123,97 @@ insert x tree =
 
         Node y colour left right ->
             Node y Black left right
+
+
+
+--- Search
+
+
+{-| A pre-order depth-first search: start at the root, then
+traverse the left branch followed by the right branch.
+
+    fromList [ 2, 5, 6, 7, 1, 8, 4, 3 ] |> preOrder == [ 5, 3, 2, 1, 4, 7, 6, 8 ]
+
+-}
+preOrder : RedBlackTree comparable -> List comparable
+preOrder tree =
+    case tree of
+        Empty ->
+            []
+
+        Node x colour left right ->
+            [ x ] ++ preOrder left ++ preOrder right
+
+
+{-| An in-order depth-first search: traverse the left branch,
+add the root, then finish with the right branch. This ordering
+is sorted by convention.
+
+    fromList [ 2, 5, 6, 7, 1, 8, 4, 3 ] |> inOrder == [ 1, 2, 3, 4, 5, 6, 7, 8 ]
+
+-}
+inOrder : RedBlackTree comparable -> List comparable
+inOrder tree =
+    case tree of
+        Empty ->
+            []
+
+        Node x colour left right ->
+            inOrder left ++ [ x ] ++ inOrder right
+
+
+{-| A post-order depth-first search: traverse the left branch followed by
+the right branch and finishing with the root.
+
+    fromList [ 2, 5, 6, 7, 1, 8, 4, 3 ] |> postOrder == [ 1, 2, 4, 3, 6, 8, 7, 5 ]
+
+-}
+postOrder : RedBlackTree comparable -> List comparable
+postOrder tree =
+    case tree of
+        Empty ->
+            []
+
+        Node x colour left right ->
+            postOrder left ++ postOrder right ++ [ x ]
+
+
+{-| A breadth-first search traversing the tree in level order,
+starting from the root and travering down.
+
+    fromList [ 2, 5, 6, 7, 1, 8, 4, 3 ] |> levelOrder == [ 5, 3, 7, 2, 4, 6, 8, 1 ]
+
+-}
+levelOrder : RedBlackTree comparable -> List comparable
+levelOrder tree =
+    case tree of
+        Empty ->
+            []
+
+        Node x colour left right ->
+            breadthFirst (Fifo.insert tree Fifo.empty)
+
+
+{-| Helper function that actually completes the breadth-first seach
+called by `levelOrder`.
+-}
+breadthFirst : Fifo (RedBlackTree comparable) -> List comparable
+breadthFirst queue =
+    let
+        ( maybe, queuedValue ) =
+            Fifo.remove queue
+    in
+    case maybe of
+        Nothing ->
+            []
+
+        Just node ->
+            case node of
+                Empty ->
+                    breadthFirst queuedValue
+
+                Node x colour left right ->
+                    [ x ] ++ breadthFirst (Fifo.insert right (Fifo.insert left queuedValue))
 
 
 
