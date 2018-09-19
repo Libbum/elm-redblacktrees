@@ -1,6 +1,6 @@
 module RedBlackTrees exposing
     ( RedBlackTree, Colour(..)
-    , empty, singleton, fromList, insert
+    , empty, singleton, fromList, insert, delete
     , preOrder, inOrder, postOrder
     , levelOrder
     , isMember, size, blackHeight, height, flatten
@@ -18,9 +18,9 @@ time complexity drops to O(log N) [from O(N) in the BST case].
 @docs RedBlackTree, Colour
 
 
-# Building
+# Building and Modifying
 
-@docs empty, singleton, fromList, insert
+@docs empty, singleton, fromList, insert, delete
 
 
 # Searching
@@ -59,6 +59,7 @@ a represesentative colour and two child branches.
 -}
 type RedBlackTree comparable
     = Empty
+    | DoubleEmpty
     | Node comparable Colour (RedBlackTree comparable) (RedBlackTree comparable)
 
 
@@ -67,6 +68,8 @@ type RedBlackTree comparable
 type Colour
     = Red
     | Black
+    | DoubleBlack
+    | NegativeBlack
 
 
 
@@ -125,6 +128,9 @@ insert x tree =
         Empty ->
             Node x Black Empty Empty
 
+        DoubleEmpty ->
+            Node x DoubleBlack DoubleEmpty DoubleEmpty
+
         Node y colour left right ->
             Node y Black left right
 
@@ -139,6 +145,9 @@ ins x tree =
         Empty ->
             Node x Red Empty Empty
 
+        DoubleEmpty ->
+            Node x DoubleBlack DoubleEmpty DoubleEmpty
+
         Node y colour left right ->
             if x == y then
                 tree
@@ -150,8 +159,8 @@ ins x tree =
                 balance <| Node y colour left (ins x right)
 
 
-{-| A red-red violation can occur in any of these four possibilities.
-If this occurs, the solution is the same regardelss of the arrangement
+{-| A red-red violation can occur in any of these four scenarios.
+If any one of them occur, the solution is the same regardelss of the arrangement
 of the violation. Red-red violations will be propogated up the tree until
 they no longer appear.
 -}
@@ -174,6 +183,31 @@ balance tree =
             tree
 
 
+{-| Remove a node from the tree. Most of the time this is a straightforward
+matter, except for when a black node with no children is removed. This
+ultimately changes the (`blackHeight`)[#blackHeight] and thus the entire
+tree must be rebalanced and recoloured.
+-}
+delete : comparable -> RedBlackTree comparable -> RedBlackTree comparable
+delete x tree =
+    case tree of
+        Empty ->
+            Empty
+
+        DoubleEmpty ->
+            DoubleEmpty
+
+        Node y colour left right ->
+            if x == y then
+                Node y DoubleBlack left right
+
+            else if x < y then
+                delete x left
+
+            else
+                delete x right
+
+
 
 --- Search
 
@@ -188,11 +222,11 @@ traverse the left branch followed by the right branch.
 preOrder : RedBlackTree comparable -> List comparable
 preOrder tree =
     case tree of
-        Empty ->
-            []
-
         Node x colour left right ->
             [ x ] ++ preOrder left ++ preOrder right
+
+        _ ->
+            []
 
 
 {-| An in-order depth-first search: traverse the left branch,
@@ -206,11 +240,11 @@ is sorted by convention.
 inOrder : RedBlackTree comparable -> List comparable
 inOrder tree =
     case tree of
-        Empty ->
-            []
-
         Node x colour left right ->
             inOrder left ++ [ x ] ++ inOrder right
+
+        _ ->
+            []
 
 
 {-| A post-order depth-first search: traverse the left branch followed by
@@ -223,11 +257,11 @@ the right branch and finishing with the root.
 postOrder : RedBlackTree comparable -> List comparable
 postOrder tree =
     case tree of
-        Empty ->
-            []
-
         Node x colour left right ->
             postOrder left ++ postOrder right ++ [ x ]
+
+        _ ->
+            []
 
 
 {-| A breadth-first search traversing the tree in level order,
@@ -240,11 +274,11 @@ starting from the root and travering down.
 levelOrder : RedBlackTree comparable -> List comparable
 levelOrder tree =
     case tree of
-        Empty ->
-            []
-
         Node x colour left right ->
             breadthFirst (Fifo.insert tree Fifo.empty)
+
+        _ ->
+            []
 
 
 {-| Helper function that actually completes the breadth-first seach
@@ -262,11 +296,11 @@ breadthFirst queue =
 
         Just node ->
             case node of
-                Empty ->
-                    breadthFirst queuedValue
-
                 Node x colour left right ->
                     [ x ] ++ breadthFirst (Fifo.insert right (Fifo.insert left queuedValue))
+
+                _ ->
+                    breadthFirst queuedValue
 
 
 
@@ -282,9 +316,6 @@ breadthFirst queue =
 isMember : comparable -> RedBlackTree comparable -> Bool
 isMember x tree =
     case tree of
-        Empty ->
-            False
-
         Node y colour left right ->
             if x == y then
                 True
@@ -294,6 +325,9 @@ isMember x tree =
 
             else
                 isMember x right
+
+        _ ->
+            False
 
 
 {-| Count the number of elements in the tree.
@@ -305,11 +339,11 @@ isMember x tree =
 size : RedBlackTree comparable -> Int
 size tree =
     case tree of
-        Empty ->
-            0
-
         Node x colour left right ->
             1 + size left + size right
+
+        _ ->
+            0
 
 
 {-| Every path from the root to the leaves of a red black tree must contain
@@ -329,6 +363,9 @@ blackHeight tree =
         Empty ->
             Just 0
 
+        DoubleEmpty ->
+            Nothing
+
         Node x colour left right ->
             let
                 nodeCount =
@@ -338,6 +375,12 @@ blackHeight tree =
 
                         Black ->
                             1
+
+                        DoubleBlack ->
+                            2
+
+                        NegativeBlack ->
+                            -1
             in
             case ( blackHeight left, blackHeight right ) of
                 ( Just leftCount, Just rightCount ) ->
@@ -366,11 +409,11 @@ the shortest path.
 height : RedBlackTree comparable -> Int
 height tree =
     case tree of
-        Empty ->
-            0
-
         Node x colour left right ->
             1 + max (height left) (height right)
+
+        _ ->
+            0
 
 
 {-| Generate a list of values contained in the tree. Since
@@ -387,11 +430,11 @@ resultant list will be sorted. Colour is ignored in this operation.
 flatten : RedBlackTree comparable -> List comparable
 flatten tree =
     case tree of
-        Empty ->
-            []
-
         Node value colour left right ->
             List.concat [ flatten left, [ value ], flatten right ]
+
+        _ ->
+            []
 
 
 
@@ -436,6 +479,9 @@ binarySearchOrder tree =
         Empty ->
             True
 
+        DoubleEmpty ->
+            False
+
         Node x colour left right ->
             let
                 checkLeft =
@@ -465,11 +511,11 @@ binarySearchOrder tree =
 root : RedBlackTree comparable -> Maybe comparable
 root tree =
     case tree of
-        Empty ->
-            Nothing
-
         Node x colour left right ->
             Just x
+
+        _ ->
+            Nothing
 
 
 {-| Here we check if there are any red nodes that have red children.
@@ -480,6 +526,9 @@ noRedRed : RedBlackTree comparable -> Bool
 noRedRed tree =
     case tree of
         Empty ->
+            True
+
+        DoubleEmpty ->
             True
 
         Node x Red (Node y Red l r) right ->
@@ -500,8 +549,11 @@ blackRoot tree =
         Empty ->
             True
 
+        DoubleEmpty ->
+            False
+
         Node x Black left right ->
             True
 
-        Node x Red left right ->
+        Node x colour left right ->
             False
