@@ -75,7 +75,8 @@ type Colour
 
 {-| An empty tree for ease of use when constructing trees.
 
-    empty == Empty
+    empty
+    --> Empty
 
 -}
 empty : RedBlackTree comparable
@@ -86,7 +87,8 @@ empty =
 {-| A tree with a single value inserted into it. Since this
 is a single node tree, it's colour is black by definition.
 
-    singleton 5 == Node 5 Black Empty Empty
+    singleton
+    --> Node 5 Black Empty Empty
 
 -}
 singleton : comparable -> RedBlackTree comparable
@@ -96,7 +98,8 @@ singleton value =
 
 {-| Generate a Red Black representation of a list.
 
-    fromList [ 2, 7, 8, 3, 9, 1, 5, 10 ] == Node 7 Black (Node 3 Red (Node 2 Black (Node 1 Red Empty Empty) Empty) (Node 5 Black Empty Empty)) (Node 9 Red (Node 8 Black Empty Empty) (Node 10 Black Empty Empty))
+    fromList [ 2, 7, 8, 3, 9, 1, 5, 10 ]
+    --> Node 7 Black (Node 3 Red (Node 2 Black (Node 1 Red Empty Empty) Empty) (Node 5 Black Empty Empty)) (Node 9 Red (Node 8 Black Empty Empty) (Node 10 Black Empty Empty))
 
 -}
 fromList : List comparable -> RedBlackTree comparable
@@ -108,7 +111,8 @@ fromList =
 red black constraints to be broken, there may be a need to recolour nodes
 or rebalance the tree.
 
-    singleton 8 |> insert 1 == Node 8 Black (Node 1 Red Empty Empty) Empty
+    singleton 8 |> insert 1
+    --> Node 8 Black (Node 1 Red Empty Empty) Empty
 
 -}
 insert : comparable -> RedBlackTree comparable -> RedBlackTree comparable
@@ -125,6 +129,51 @@ insert x tree =
             Node y Black left right
 
 
+{-| A helper function for `insert`. Ultimately this does the insertion, but
+since the algorithm adds a `Red` node by default, the `insert` function must force
+the root node to be black to satisfy the red black constraints.
+-}
+ins : comparable -> RedBlackTree comparable -> RedBlackTree comparable
+ins x tree =
+    case tree of
+        Empty ->
+            Node x Red Empty Empty
+
+        Node y colour left right ->
+            if x == y then
+                tree
+
+            else if x < y then
+                balance <| Node y colour (ins x left) right
+
+            else
+                balance <| Node y colour left (ins x right)
+
+
+{-| A red-red violation can occur in any of these four possibilities.
+If this occurs, the solution is the same regardelss of the arrangement
+of the violation. Red-red violations will be propogated up the tree until
+they no longer appear.
+-}
+balance : RedBlackTree comparable -> RedBlackTree comparable
+balance tree =
+    case tree of
+        Node z Black (Node y Red (Node x Red a b) c) d ->
+            Node y Red (Node x Black a b) (Node z Black c d)
+
+        Node z Black (Node x Red a (Node y Red b c)) d ->
+            Node y Red (Node x Black a b) (Node z Black c d)
+
+        Node x Black a (Node z Red (Node y Red b c) d) ->
+            Node y Red (Node x Black a b) (Node z Black c d)
+
+        Node x Black a (Node y Red b (Node z Red c d)) ->
+            Node y Red (Node x Black a b) (Node z Black c d)
+
+        _ ->
+            tree
+
+
 
 --- Search
 
@@ -132,7 +181,8 @@ insert x tree =
 {-| A pre-order depth-first search: start at the root, then
 traverse the left branch followed by the right branch.
 
-    fromList [ 2, 5, 6, 7, 1, 8, 4, 3 ] |> preOrder == [ 5, 3, 2, 1, 4, 7, 6, 8 ]
+    fromList [ 2, 5, 6, 7, 1, 8, 4, 3 ] |> preOrder
+    --> [ 5, 3, 2, 1, 4, 7, 6, 8 ]
 
 -}
 preOrder : RedBlackTree comparable -> List comparable
@@ -149,7 +199,8 @@ preOrder tree =
 add the root, then finish with the right branch. This ordering
 is sorted by convention.
 
-    fromList [ 2, 5, 6, 7, 1, 8, 4, 3 ] |> inOrder == [ 1, 2, 3, 4, 5, 6, 7, 8 ]
+    fromList [ 2, 5, 6, 7, 1, 8, 4, 3 ] |> inOrder
+    --> [ 1, 2, 3, 4, 5, 6, 7, 8 ]
 
 -}
 inOrder : RedBlackTree comparable -> List comparable
@@ -165,7 +216,8 @@ inOrder tree =
 {-| A post-order depth-first search: traverse the left branch followed by
 the right branch and finishing with the root.
 
-    fromList [ 2, 5, 6, 7, 1, 8, 4, 3 ] |> postOrder == [ 1, 2, 4, 3, 6, 8, 7, 5 ]
+    fromList [ 2, 5, 6, 7, 1, 8, 4, 3 ] |> postOrder
+    --> [ 1, 2, 4, 3, 6, 8, 7, 5 ]
 
 -}
 postOrder : RedBlackTree comparable -> List comparable
@@ -181,7 +233,8 @@ postOrder tree =
 {-| A breadth-first search traversing the tree in level order,
 starting from the root and travering down.
 
-    fromList [ 2, 5, 6, 7, 1, 8, 4, 3 ] |> levelOrder == [ 5, 3, 7, 2, 4, 6, 8, 1 ]
+    fromList [ 2, 5, 6, 7, 1, 8, 4, 3 ] |> levelOrder
+    --> [ 5, 3, 7, 2, 4, 6, 8, 1 ]
 
 -}
 levelOrder : RedBlackTree comparable -> List comparable
@@ -222,7 +275,8 @@ breadthFirst queue =
 
 {-| Check if a value currently exists within in a tree.
 
-    fromList [ 1, 2, 3 ] |> isMember 72 == False
+    fromList [ 1, 2, 3 ] |> isMember 72
+    --> False
 
 -}
 isMember : comparable -> RedBlackTree comparable -> Bool
@@ -244,7 +298,8 @@ isMember x tree =
 
 {-| Count the number of elements in the tree.
 
-    fromList [ 3, 8, 16 ] |> size == 3
+    fromList [ 3, 8, 16 ] |> size
+    --> 3
 
 -}
 size : RedBlackTree comparable -> Int
@@ -261,7 +316,8 @@ size tree =
 the same number of black nodes. The `blackHeight` is the value of this path length.
 Notably, this is also the shortest path from root to leaf.
 
-    fromList [ 2, 7, 4, 9, 1, 3, 18, 10 ] |> blackHeight == Just 2
+    fromList [ 2, 7, 4, 9, 1, 3, 18, 10 ] |> blackHeight
+    --> Just 2
 
 Calling `blackHeight` on a valid red black tree will return a count, but if
 the tree is not correctly balanced, this function will return `Nothing`.
@@ -297,12 +353,14 @@ blackHeight tree =
 
 {-| Calculate the height of the tree.
 
-    fromList [ 8, 24, 17, 32, 9, 1, 12, 7 ] |> height == 4
+    fromList [ 8, 24, 17, 32, 9, 1, 12, 7 ] |> height
+    --> 4
 
 The longest path from the root to a leaf is at most twice the length of
 the shortest path.
 
-    height tree <= 2 * (Maybe.withDefault 0 <| blackHeight tree) == True
+    height tree <= 2 * (Maybe.withDefault 0 <| blackHeight tree)
+    --> True
 
 -}
 height : RedBlackTree comparable -> Int
@@ -319,9 +377,11 @@ height tree =
 Red Black trees are an extention of Binary Search Trees, the
 resultant list will be sorted. Colour is ignored in this operation.
 
-    tree = fromList [ 8, 1, 2, 6, 29, 42, 7, 22, 18, 36 ] == Node 7 Black (Node 2 Black (Node 1 Black Empty Empty) (Node 6 Black Empty Empty)) (Node 29 Black (Node 18 Red (Node 8 Black Empty Empty) (Node 22 Black Empty Empty)) (Node 42 Black (Node 36 Red Empty Empty) Empty))
+    tree = fromList [ 8, 1, 2, 6, 29, 42, 7, 22, 18, 36 ]
+    --> Node 7 Black (Node 2 Black (Node 1 Black Empty Empty) (Node 6 Black Empty Empty)) (Node 29 Black (Node 18 Red (Node 8 Black Empty Empty) (Node 22 Black Empty Empty)) (Node 42 Black (Node 36 Red Empty Empty) Empty))
 
-    flatten tree == [ 1, 2, 6, 7, 8, 18, 22, 29, 36, 42 ]
+    flatten tree
+    --> [ 1, 2, 6, 7, 8, 18, 22, 29, 36, 42 ]
 
 -}
 flatten : RedBlackTree comparable -> List comparable
@@ -346,7 +406,8 @@ flatten tree =
 4.  Every path from the root to a leaf contains the same number of black nodes
 
 ```
-fromList [ 1, 2, 3, 4 ] |> isValid == True
+fromList [ 1, 2, 3, 4 ] |> isValid
+--> True
 ```
 
 -}
@@ -399,6 +460,18 @@ binarySearchOrder tree =
                 && binarySearchOrder right
 
 
+{-| Helper for `binarySearchOrder` which (possibly) grabs the value of the root node.
+-}
+root : RedBlackTree comparable -> Maybe comparable
+root tree =
+    case tree of
+        Empty ->
+            Nothing
+
+        Node x colour left right ->
+            Just x
+
+
 {-| Here we check if there are any red nodes that have red children.
 If so, the red-red constraint has been violated. It may be possible to
 fix this by balancing the tree.
@@ -432,64 +505,3 @@ blackRoot tree =
 
         Node x Red left right ->
             False
-
-
-
---- Helpers
-
-
-{-| A helper function for `insert`. Ultimately this does the insertion, but
-since the algorithm adds a `Red` node by default, the `insert` function must force
-the root node to be black to satisfy the red black constraints.
--}
-ins : comparable -> RedBlackTree comparable -> RedBlackTree comparable
-ins x tree =
-    case tree of
-        Empty ->
-            Node x Red Empty Empty
-
-        Node y colour left right ->
-            if x == y then
-                tree
-
-            else if x < y then
-                balance <| Node y colour (ins x left) right
-
-            else
-                balance <| Node y colour left (ins x right)
-
-
-{-| A red-red violation can occur in any of these four possibilities.
-If this occurs, the solution is the same regardelss of the arrangement
-of the violation. Red-red violations will be propogated up the tree until
-they no longer appear.
--}
-balance : RedBlackTree comparable -> RedBlackTree comparable
-balance tree =
-    case tree of
-        Node z Black (Node y Red (Node x Red a b) c) d ->
-            Node y Red (Node x Black a b) (Node z Black c d)
-
-        Node z Black (Node x Red a (Node y Red b c)) d ->
-            Node y Red (Node x Black a b) (Node z Black c d)
-
-        Node x Black a (Node z Red (Node y Red b c) d) ->
-            Node y Red (Node x Black a b) (Node z Black c d)
-
-        Node x Black a (Node y Red b (Node z Red c d)) ->
-            Node y Red (Node x Black a b) (Node z Black c d)
-
-        _ ->
-            tree
-
-
-{-| Helper for `binarySearchOrder` which (possibly) grabs the value of the root node.
--}
-root : RedBlackTree comparable -> Maybe comparable
-root tree =
-    case tree of
-        Empty ->
-            Nothing
-
-        Node x colour left right ->
-            Just x
