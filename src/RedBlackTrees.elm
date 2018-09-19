@@ -159,10 +159,15 @@ ins x tree =
                 balance <| Node y colour left (ins x right)
 
 
-{-| A red-red violation can occur in any of these four scenarios.
+{-| A red-red violation can occur in any of the four initial scenarios.
 If any one of them occur, the solution is the same regardelss of the arrangement
 of the violation. Red-red violations will be propogated up the tree until
 they no longer appear.
+
+The lower six cases are verification cases when deleting nodes. There
+are four red-red like violations that propegate the same, although
+they are blacker. Finally, two cases that handle negative blacks.
+
 -}
 balance : RedBlackTree comparable -> RedBlackTree comparable
 balance tree =
@@ -178,6 +183,34 @@ balance tree =
 
         Node x Black a (Node y Red b (Node z Red c d)) ->
             Node y Red (Node x Black a b) (Node z Black c d)
+
+        Node z DoubleBlack (Node y Red (Node x Red a b) c) d ->
+            Node y Black (Node x Black a b) (Node z Black c d)
+
+        Node z DoubleBlack (Node x Red a (Node y Red b c)) d ->
+            Node y Black (Node x Black a b) (Node z Black c d)
+
+        Node x DoubleBlack a (Node z Red (Node y Red b c) d) ->
+            Node y Black (Node x Black a b) (Node z Black c d)
+
+        Node x DoubleBlack a (Node y Red b (Node z Red c d)) ->
+            Node y Black (Node x Black a b) (Node z Black c d)
+
+        Node x DoubleBlack a (Node z NegativeBlack (Node y Black b c) d) ->
+            case d of
+                Node val Black l r ->
+                    Node y Black (Node x Black a b) (balance <| Node z Black c (redden d))
+
+                _ ->
+                    tree
+
+        Node z DoubleBlack (Node x NegativeBlack a (Node y Black b c)) d ->
+            case a of
+                Node val Black l r ->
+                    Node y Black (balance <| Node x Black (redden a) b) (Node z Black c d)
+
+                _ ->
+                    tree
 
         _ ->
             tree
@@ -206,6 +239,112 @@ delete x tree =
 
             else
                 delete x right
+
+
+{-| Check if tree has DoubleBlack nodes.
+-}
+isDoubleBlack : RedBlackTree comparable -> Bool
+isDoubleBlack tree =
+    case tree of
+        DoubleEmpty ->
+            True
+
+        Node x DoubleBlack left right ->
+            True
+
+        _ ->
+            False
+
+
+{-| Colour a node red. Note: This should error if tree is empty.
+-}
+redden : RedBlackTree comparable -> RedBlackTree comparable
+redden tree =
+    case tree of
+        Node x colour left right ->
+            Node x Red left right
+
+        _ ->
+            tree
+
+
+{-| Colour a node black.
+-}
+blacken : RedBlackTree comparable -> RedBlackTree comparable
+blacken tree =
+    case tree of
+        Node x colour left right ->
+            Node x Black left right
+
+        _ ->
+            Empty
+
+
+{-| Blacken a given colour. Note: This should probably yield an
+error rather than attempt to blackerTree a `DoubleBlack`.
+-}
+blacker : Colour -> Colour
+blacker colour =
+    case colour of
+        NegativeBlack ->
+            Red
+
+        Red ->
+            Black
+
+        _ ->
+            DoubleBlack
+
+
+{-| Blacken the entire tree from this point.
+-}
+blackerTree : RedBlackTree comparable -> RedBlackTree comparable
+blackerTree tree =
+    case tree of
+        Node x colour left right ->
+            Node x (blacker colour) left right
+
+        _ ->
+            DoubleEmpty
+
+
+{-| Redden a given colour. Note: This should probably yield an
+error rather than attempt to redderTree a `NegativeBlack`.
+-}
+redder : Colour -> Colour
+redder colour =
+    case colour of
+        Black ->
+            Red
+
+        DoubleBlack ->
+            Black
+
+        _ ->
+            NegativeBlack
+
+
+{-| Redden the entire tree from this point.
+-}
+redderTree : RedBlackTree comparable -> RedBlackTree comparable
+redderTree tree =
+    case tree of
+        Node x colour left right ->
+            Node x (redder colour) left right
+
+        _ ->
+            DoubleEmpty
+
+
+{-| This helper function "bubbles" double-blackness upward.
+-}
+bubble : comparable -> Colour -> RedBlackTree comparable -> RedBlackTree comparable -> RedBlackTree comparable
+bubble x colour left right =
+    if isDoubleBlack left || isDoubleBlack right then
+        balance <| Node x (blacker colour) (redderTree left) (redderTree right)
+
+    else
+        balance <| Node x colour left right
 
 
 
