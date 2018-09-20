@@ -1,9 +1,9 @@
 module RedBlackTrees exposing
-    ( RedBlackTree, Colour(..)
+    ( RedBlackTree(..), Colour(..)
     , empty, singleton, fromList, insert, delete
     , preOrder, inOrder, postOrder
     , levelOrder
-    , isMember, size, blackHeight, height, flatten
+    , isMember, size, blackHeight, height, flatten, maximum
     , isValid
     )
 
@@ -38,7 +38,7 @@ time complexity drops to O(log N) [from O(N) in the BST case].
 
 # Utilities
 
-@docs isMember, size, blackHeight, height, flatten
+@docs isMember, size, blackHeight, height, flatten, maximum
 
 
 # Validation
@@ -56,6 +56,9 @@ import Fifo exposing (Fifo)
 
 {-| Trees can be comprised of either empty leaves or nodes containing a value,
 a represesentative colour and two child branches.
+
+The `DoubleEmpty` value is only used when deleting, so can be ignored.
+
 -}
 type RedBlackTree comparable
     = Empty
@@ -64,6 +67,10 @@ type RedBlackTree comparable
 
 
 {-| Since this is a red black tree representation, we ignore the green brown convention.
+
+The additional `DoubleBlack` and `NegativeBlack` colours are required for deletion
+purposes, so can be ignored for the most part.
+
 -}
 type Colour
     = Red
@@ -223,22 +230,74 @@ tree must be rebalanced and recoloured.
 -}
 delete : comparable -> RedBlackTree comparable -> RedBlackTree comparable
 delete x tree =
+    blacken (del x tree)
+
+
+{-| Handles the recursive deletion. Note: DoubleEmpty is a wildcard here.
+There's probably a better way to do this...
+-}
+del : comparable -> RedBlackTree comparable -> RedBlackTree comparable
+del x tree =
     case tree of
-        Empty ->
-            Empty
-
-        DoubleEmpty ->
-            DoubleEmpty
-
         Node y colour left right ->
-            if x == y then
-                Node y DoubleBlack left right
+            if x < y then
+                bubble y colour (del x left) right
 
-            else if x < y then
-                delete x left
+            else if x > y then
+                bubble y colour left (del x right)
 
             else
-                delete x right
+                remove tree
+
+        _ ->
+            Empty
+
+
+{-| Deletion helper. Performs the deletion operation once all DoubleBlacks
+have been bubbled out. Note: DoubleEmpty should crash probably. The Nothing
+case should also be impossible to reach.
+-}
+remove : RedBlackTree comparable -> RedBlackTree comparable
+remove tree =
+    case tree of
+        Node x Red Empty Empty ->
+            Empty
+
+        Node x Black Empty Empty ->
+            DoubleEmpty
+
+        Node x Black Empty (Node y Red left right) ->
+            Node y Black left right
+
+        Node x Black (Node y Red left right) Empty ->
+            Node y Black left right
+
+        Node x colour left right ->
+            case maximum left of
+                Just maxLeft ->
+                    bubble maxLeft colour (removeMax left) right
+
+                Nothing ->
+                    Empty
+
+        _ ->
+            Empty
+
+
+{-| Remove the largest value in a tree. Note: The otherwise cases
+should error.
+-}
+removeMax : RedBlackTree comparable -> RedBlackTree comparable
+removeMax tree =
+    case tree of
+        Node x colour left Empty ->
+            remove tree
+
+        Node x colour left right ->
+            bubble x colour left (removeMax right)
+
+        _ ->
+            Empty
 
 
 {-| Check if tree has DoubleBlack nodes.
@@ -574,6 +633,26 @@ flatten tree =
 
         _ ->
             []
+
+
+{-| Finds largest element in tree. Returns `Nothing`
+if tree is `Empty`.
+
+    fromList [1,9,2,7] |> maximum
+    --> Just 9
+
+-}
+maximum : RedBlackTree comparable -> Maybe comparable
+maximum tree =
+    case tree of
+        Node x colour left Empty ->
+            Just x
+
+        Node x colour left right ->
+            maximum right
+
+        _ ->
+            Nothing
 
 
 
