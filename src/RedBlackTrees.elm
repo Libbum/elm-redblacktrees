@@ -133,6 +133,9 @@ insert x tree =
 {-| A helper function for `insert`. Ultimately this does the insertion, but
 since the algorithm adds a `Red` node by default, the `insert` function must force
 the root node to be black to satisfy the red black constraints.
+
+Note: The double empty here is a problem case.
+
 -}
 ins : comparable -> RedBlackTree comparable -> RedBlackTree comparable
 ins x tree =
@@ -141,7 +144,7 @@ ins x tree =
             Node x Red Empty Empty
 
         DoubleEmpty ->
-            DoubleEmpty
+            Empty
 
         Node y colour left right ->
             if x == y then
@@ -162,6 +165,8 @@ they no longer appear.
 The lower six cases are verification cases when deleting nodes. There
 are four red-red like violations that propegate the same, although
 they are blacker. Finally, two cases that handle negative blacks.
+
+Note: This is effectively a silent failure at the moment...
 
 -}
 balance : RedBlackTree comparable -> RedBlackTree comparable
@@ -194,7 +199,12 @@ balance tree =
         Node x DoubleBlack a (Node z NegativeBlack (Node y Black b c) d) ->
             case d of
                 Node val Black l r ->
-                    Node y Black (Node x Black a b) (balance <| Node z Black c (redden d))
+                    case redden d of
+                        Ok redD ->
+                            Node y Black (Node x Black a b) (balance <| Node z Black c redD)
+
+                        Err _ ->
+                            tree
 
                 _ ->
                     tree
@@ -202,7 +212,12 @@ balance tree =
         Node z DoubleBlack (Node x NegativeBlack a (Node y Black b c)) d ->
             case a of
                 Node val Black l r ->
-                    Node y Black (balance <| Node x Black (redden a) b) (Node z Black c d)
+                    case redden a of
+                        Ok redA ->
+                            Node y Black (balance <| Node x Black redA b) (Node z Black c d)
+
+                        Err _ ->
+                            tree
 
                 _ ->
                     tree
@@ -263,7 +278,12 @@ remove tree =
         Node x colour left right ->
             case maximum left of
                 Just maxLeft ->
-                    bubble maxLeft colour (removeMax left) right
+                    case removeMax left of
+                        Ok rmLeft ->
+                            bubble maxLeft colour rmLeft right
+
+                        Err msg ->
+                            Empty
 
                 Nothing ->
                     Empty
@@ -275,17 +295,25 @@ remove tree =
 {-| Remove the largest value in a tree. Note: The otherwise cases
 should error.
 -}
-removeMax : RedBlackTree comparable -> RedBlackTree comparable
+removeMax : RedBlackTree comparable -> Result String (RedBlackTree comparable)
 removeMax tree =
     case tree of
         Node x colour left Empty ->
-            remove tree
+            Ok (remove tree)
 
         Node x colour left right ->
-            bubble x colour left (removeMax right)
+            case removeMax right of
+                Ok rmRight ->
+                    Ok <| bubble x colour left rmRight
 
-        _ ->
-            Empty
+                Err msg ->
+                    Err msg
+
+        Empty ->
+            Err "No maximum to remove"
+
+        DoubleEmpty ->
+            Err "Tried to remove a DoubleEmpty"
 
 
 {-| Check if tree has DoubleBlack nodes.
@@ -305,14 +333,14 @@ isDoubleBlack tree =
 
 {-| Colour a node red. Note: This should error if tree is empty.
 -}
-redden : RedBlackTree comparable -> RedBlackTree comparable
+redden : RedBlackTree comparable -> Result String (RedBlackTree comparable)
 redden tree =
     case tree of
         Node x colour left right ->
-            Node x Red left right
+            Ok (Node x Red left right)
 
         _ ->
-            tree
+            Err "Cannot redden empty tree"
 
 
 {-| Colour a node black.
@@ -327,68 +355,89 @@ blacken tree =
             Empty
 
 
-{-| Blacken a given colour. Note: This should probably yield an
-error rather than attempt to blackerTree a `DoubleBlack`.
+{-| Blacken a given colour.
 -}
-blacker : Colour -> Colour
+blacker : Colour -> Result String Colour
 blacker colour =
     case colour of
         NegativeBlack ->
-            Red
+            Ok Red
 
         Red ->
-            Black
+            Ok Black
 
-        _ ->
-            DoubleBlack
+        Black ->
+            Ok DoubleBlack
+
+        DoubleBlack ->
+            Err "Too Black"
 
 
 {-| Blacken the entire tree from this point.
 -}
-blackerTree : RedBlackTree comparable -> RedBlackTree comparable
+blackerTree : RedBlackTree comparable -> Result String (RedBlackTree comparable)
 blackerTree tree =
     case tree of
         Node x colour left right ->
-            Node x (blacker colour) left right
+            case blacker colour of
+                Ok blackend ->
+                    Ok (Node x blackend left right)
+
+                Err msg ->
+                    Err msg
+
+        Empty ->
+            Ok DoubleEmpty
 
         _ ->
-            DoubleEmpty
+            Err "Cannot blacken this tree"
 
 
-{-| Redden a given colour. Note: This should probably yield an
-error rather than attempt to redderTree a `NegativeBlack`.
+{-| Redden a given colour.
 -}
-redder : Colour -> Colour
+redder : Colour -> Result String Colour
 redder colour =
     case colour of
         Black ->
-            Red
+            Ok Red
 
         DoubleBlack ->
-            Black
+            Ok Black
 
-        _ ->
-            NegativeBlack
+        Red ->
+            Ok NegativeBlack
+
+        NegativeBlack ->
+            Err "Not Black enough"
 
 
 {-| Redden the entire tree from this point.
 -}
-redderTree : RedBlackTree comparable -> RedBlackTree comparable
+redderTree : RedBlackTree comparable -> Result String (RedBlackTree comparable)
 redderTree tree =
     case tree of
         Node x colour left right ->
-            Node x (redder colour) left right
+            case redder colour of
+                Ok reddened ->
+                    Ok (Node x reddened left right)
+
+                Err msg ->
+                    Err msg
+
+        DoubleEmpty ->
+            Ok Empty
 
         _ ->
-            DoubleEmpty
+            Err "Cannot redden this tree"
 
 
 {-| This helper function "bubbles" double-blackness upward.
+Note: Result handling here is bad.
 -}
 bubble : comparable -> Colour -> RedBlackTree comparable -> RedBlackTree comparable -> RedBlackTree comparable
 bubble x colour left right =
     if isDoubleBlack left || isDoubleBlack right then
-        balance <| Node x (blacker colour) (redderTree left) (redderTree right)
+        balance <| Node x (Result.withDefault colour (blacker colour)) (Result.withDefault left (redderTree left)) (Result.withDefault right (redderTree right))
 
     else
         balance <| Node x colour left right
@@ -557,21 +606,18 @@ blackHeight tree =
                 nodeCount =
                     case colour of
                         Red ->
-                            0
+                            Just 0
 
                         Black ->
-                            1
+                            Just 1
 
-                        DoubleBlack ->
-                            2
-
-                        NegativeBlack ->
-                            -1
+                        _ ->
+                            Nothing
             in
             case ( blackHeight left, blackHeight right ) of
                 ( Just leftCount, Just rightCount ) ->
                     if leftCount == rightCount then
-                        Just (nodeCount + leftCount)
+                        Maybe.map2 (+) nodeCount (Just leftCount)
 
                     else
                         Nothing
