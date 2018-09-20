@@ -127,19 +127,7 @@ or rebalance the tree.
 -}
 insert : comparable -> RedBlackTree comparable -> RedBlackTree comparable
 insert x tree =
-    let
-        balanced =
-            ins x tree
-    in
-    case balanced of
-        Empty ->
-            Node x Black Empty Empty
-
-        DoubleEmpty ->
-            Node x DoubleBlack DoubleEmpty DoubleEmpty
-
-        Node y colour left right ->
-            Node y Black left right
+    blacken (ins x tree)
 
 
 {-| A helper function for `insert`. Ultimately this does the insertion, but
@@ -153,7 +141,7 @@ ins x tree =
             Node x Red Empty Empty
 
         DoubleEmpty ->
-            Node x DoubleBlack DoubleEmpty DoubleEmpty
+            DoubleEmpty
 
         Node y colour left right ->
             if x == y then
