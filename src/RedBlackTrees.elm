@@ -3,7 +3,7 @@ module RedBlackTrees exposing
     , empty, singleton, fromList, insert, delete
     , preOrder, inOrder, postOrder
     , levelOrder
-    , isMember, size, blackHeight, height, flatten, maximum
+    , isMember, size, blackHeight, height, maximum, flatten
     , isValid
     )
 
@@ -38,7 +38,7 @@ time complexity drops to O(log N) [from O(N) in the BST case].
 
 # Utilities
 
-@docs isMember, size, blackHeight, height, flatten, maximum
+@docs isMember, size, blackHeight, height, maximum, flatten
 
 
 # Validation
@@ -57,7 +57,7 @@ import Fifo exposing (Fifo)
 {-| Trees can be comprised of either empty leaves or nodes containing a value,
 a represesentative colour and two child branches.
 
-The `DoubleEmpty` value is only used when deleting, so can be ignored.
+The `DoubleEmpty` value is only used when deleting, so isn't needed when constructing trees manually.
 
 -}
 type RedBlackTree comparable
@@ -69,7 +69,7 @@ type RedBlackTree comparable
 {-| Since this is a red black tree representation, we ignore the green brown convention.
 
 The additional `DoubleBlack` and `NegativeBlack` colours are required for deletion
-purposes, so can be ignored for the most part.
+purposes, thus aren't usually used when building trees.
 
 -}
 type Colour
@@ -97,7 +97,7 @@ empty =
 {-| A tree with a single value inserted into it. Since this
 is a single node tree, it's colour is black by definition.
 
-    singleton
+    singleton 5
     --> Node 5 Black Empty Empty
 
 -}
@@ -215,13 +215,30 @@ balance tree =
 matter, except for when a black node with no children is removed. This
 ultimately changes the (`blackHeight`)[#blackHeight] and thus the entire
 tree must be rebalanced and recoloured.
+
+    tree = fromList [1,2,3,4]
+    --> Node 2 Black (Node 1 Black Empty Empty) (Node 3 Black Empty (Node 4 Red Empty Empty))
+
+    delete 1 tree
+    --> Node 3 Black (Node 2 Black Empty Empty) (Node 4 Black Empty Empty)
+
+    delete 2 tree
+    --> Node 3 Black (Node 1 Black Empty Empty) (Node 4 Black Empty Empty)
+
+    delete 3 tree
+    --> Node 2 Black (Node 1 Black Empty Empty) (Node 4 Black Empty Empty)
+
+    delete 4 tree
+    --> Node 2 Black (Node 1 Black Empty Empty) (Node 3 Black Empty Empty)
+
 -}
 delete : comparable -> RedBlackTree comparable -> RedBlackTree comparable
 delete x tree =
     blacken (del x tree)
 
 
-{-| Handles the recursive deletion.
+{-| Handles the recursive deletion. First, we bubble up any `DoubleBlack`
+and then call `remove` to alter the tree where the deletion must occur.
 -}
 del : comparable -> RedBlackTree comparable -> RedBlackTree comparable
 del x tree =
@@ -242,8 +259,6 @@ del x tree =
 
 {-| Deletion helper. Performs the deletion operation once all DoubleBlacks
 have been bubbled out.
-Note: DoubleEmpty should crash probably. The Nothing
-case should also be impossible to reach.
 -}
 remove : RedBlackTree comparable -> RedBlackTree comparable
 remove tree =
@@ -272,8 +287,7 @@ remove tree =
             Empty
 
 
-{-| Remove the largest value in a tree. Note: The otherwise cases
-should error.
+{-| Remove the largest value in a tree.
 -}
 removeMax : RedBlackTree comparable -> RedBlackTree comparable
 removeMax tree =
@@ -603,6 +617,26 @@ height tree =
             0
 
 
+{-| Finds largest element in tree. Returns `Nothing`
+if tree is `Empty`.
+
+    fromList [1,9,2,7] |> maximum
+    --> Just 9
+
+-}
+maximum : RedBlackTree comparable -> Maybe comparable
+maximum tree =
+    case tree of
+        Node x colour left Empty ->
+            Just x
+
+        Node x colour left right ->
+            maximum right
+
+        _ ->
+            Nothing
+
+
 {-| Generate a list of values contained in the tree. Since
 Red Black trees are an extention of Binary Search Trees, the
 resultant list will be sorted. Colour is ignored in this operation.
@@ -622,26 +656,6 @@ flatten tree =
 
         _ ->
             []
-
-
-{-| Finds largest element in tree. Returns `Nothing`
-if tree is `Empty`.
-
-    fromList [1,9,2,7] |> maximum
-    --> Just 9
-
--}
-maximum : RedBlackTree comparable -> Maybe comparable
-maximum tree =
-    case tree of
-        Node x colour left Empty ->
-            Just x
-
-        Node x colour left right ->
-            maximum right
-
-        _ ->
-            Nothing
 
 
 
