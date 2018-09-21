@@ -30,7 +30,7 @@ Consider you have a sorted list `[ 1, 2, 3, 4, 5, 6 ]` that you convert to a BST
 As each number is inserted, the algorithm will find that it must go to the right child branch of the tree, since it is larger than the previous one.
 In the end, you get a lopsided tree:
 
-<center><img src="images/sortedbst.png" alt="Worst case BST"></center>
+<center><img src="images/sortedbst.png" alt="Worst case BST" width=500px></center>
 
 Now, if you wish to insert a `7`, you must traverse all of the values in the tree before arriving at the place you need to go.
 Thus, your operation is going to take O(N) here, not the average O(log N).
@@ -40,12 +40,12 @@ A hashmap has the same sticking point, so for the most part, they are fast but c
 
 Right. So red black trees fix the worst case scenario problem with some fancy trickery.
 
-<center><img src="images/redblack1to6.png" alt="A red black tree from a sorted list"></center>
+<center><img src="images/redblack1to6.png" alt="A red black tree from a sorted list" width=500px></center>
 
 The colours allow the tree to arrange itself such that the height of the tree is minimised, or in other words, the tree remains balanced.
 It becomes even better once we successfully insert the `7`:
 
-<center><img src="images/redblack1to7.png" alt="A balanced red black tree"></center>
+<center><img src="images/redblack1to7.png" alt="A balanced red black tree" width=500px></center>
 
 All operations work in O(log N) time, meaning consistent performance across all cases.
 Therefore you should be using a red black tree over a standard binary search tree whenever possible, and whenever your hashmap is giving you grief.
