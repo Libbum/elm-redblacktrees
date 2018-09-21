@@ -1,19 +1,8 @@
-<center><img src="logo/logo.png" alt="elm-redblacktrees"></center>
+![elm-redblacktrees](logo/logo.png)
 
-<div align="center">
-    <a href="https://package.elm-lang.org/packages/Libbum/elm-redblacktrees/latest/">
-        <img src="https://img.shields.io/elm-package/v/Libbum/elm-redblacktrees.svg" alt="Elm Package" />
-    </a>
-    │
-    <a href="https://travis-ci.org/Libbum/elm-redblacktrees">
-        <img src="https://travis-ci.org/Libbum/elm-redblacktrees.svg?branch=master" alt="Travis-ci" />
-    </a>
-    │
-    <a href="https://app.fossa.io/projects/git%2Bgithub.com%2FLibbum%2Felm-redblacktrees?ref=badge_shield">
-        <img src="https://app.fossa.io/api/projects/git%2Bgithub.com%2FLibbum%2Felm-redblacktrees.svg?type=shield" alt="FOSSA Status" />
-    </a>
-</div>
-<br />
+[![Elm Package](https://img.shields.io/elm-package/v/Libbum/elm-redblacktrees.svg)](https://package.elm-lang.org/packages/Libbum/elm-redblacktrees/latest/) │ [![Travis-ci](https://travis-ci.org/Libbum/elm-redblacktrees.svg?branch=master)](https://travis-ci.org/Libbum/elm-redblacktrees) │ [![Fossa Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FLibbum%2Felm-redblacktrees.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FLibbum%2Felm-redblacktrees?ref=badge_shield)
+
+---
 
 Red Black Trees are self-balancing binary search trees (BST) which add one bit of memory to the standard implementation (usually denoted by the colours red and black).
 With this additional tracking information; the worst case search, insert and delete time complexity drops to O(log N) [from O(N) in the BST case].
@@ -30,7 +19,7 @@ Consider you have a sorted list `[ 1, 2, 3, 4, 5, 6 ]` that you convert to a BST
 As each number is inserted, the algorithm will find that it must go to the right child branch of the tree, since it is larger than the previous one.
 In the end, you get a lopsided tree:
 
-<center><img src="images/sortedbst.png" alt="Worst case BST" width=500px></center>
+![Wost case BST](images/sortedbst.png)
 
 Now, if you wish to insert a `7`, you must traverse all of the values in the tree before arriving at the place you need to go.
 Thus, your operation is going to take O(N) here, not the average O(log N).
@@ -40,12 +29,12 @@ A hashmap has the same sticking point, so for the most part, they are fast but c
 
 Right. So red black trees fix the worst case scenario problem with some fancy trickery.
 
-<center><img src="images/redblack1to6.png" alt="A red black tree from a sorted list" width=500px></center>
+![A red black tree from a sorted list](images/redblack1to6.png)
 
 The colours allow the tree to arrange itself such that the height of the tree is minimised, or in other words, the tree remains balanced.
 It becomes even better once we successfully insert the `7`:
 
-<center><img src="images/redblack1to7.png" alt="A balanced red black tree" width=500px></center>
+![A balanced red black tree](images/redblack1to7.png)
 
 All operations work in O(log N) time, meaning consistent performance across all cases.
 Therefore you should be using a red black tree over a standard binary search tree whenever possible, and whenever your hashmap is giving you grief.
