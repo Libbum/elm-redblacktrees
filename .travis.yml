@@ -5,17 +5,13 @@ node_js:
   - node # latest stable
 
 env:
-  - ELM_VERSION=0.19.0-bugfix2 ELM_TEST_VERSION=0.19.0-beta9
+  - ELM_VERSION=0.19.0-bugfix2 ELM_TEST_VERSION=0.19.0-beta8
 
 cache:
   directories:
     - sysconfcpus
 
 install:
-  # Travis exposes a few more CPUs (like... 14 more) than the code can actually
-  # use. This program allows us to lie to the compiler about how many CPUs it
-  # can use. In this case, we're actually telling the truth about the number of
-  # usable CPUs, so build times go way down.
   - |
     if [ ! -d sysconfcpus/bin ];
     then
