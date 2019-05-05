@@ -210,7 +210,7 @@ balance tree =
 
 {-| Remove a node from the tree. Most of the time this is a straightforward
 matter, except for when a black node with no children is removed. This
-ultimately changes the (`blackHeight`)[#blackHeight] and thus the entire
+ultimately changes the (`blackHeight`)(#blackHeight) and thus the entire
 tree must be rebalanced and recoloured.
 
     tree = fromList [1,2,3,4]
